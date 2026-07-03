@@ -28,10 +28,11 @@ import {
   X,
 } from "lucide-react";
 import { PROCESSING_MODES, createProcessedCanvas, renderSheet } from "./frameProcessing";
-import { extractFrames } from "./videoFrames";
+import { estimateFrameCount, extractFrames } from "./videoFrames";
 import { canvasToBlob, downloadBlob, formatBytes, formatTime, safeName } from "./utils";
 
 const FRAME_COUNTS = [12, 24, 48, 96];
+const FPS_OPTIONS = [0.5, 1, 2, 5, 10, 24];
 const PURPOSES = ["Tracing", "Collage", "Cutting", "Painting reference", "Motion study"];
 const LAYOUTS = [
   { id: "2x3", label: "2 × 3", columns: 2, rows: 3 },
@@ -182,14 +183,35 @@ function UploadStage({ onFile, onImages, dragActive, setDragActive, error }) {
   );
 }
 
-function SetupStage({ videoInfo, count, setCount, customCount, setCustomCount, purpose, setPurpose, onExtract, loading }) {
+function SetupStage({
+  videoInfo,
+  extractionMode,
+  setExtractionMode,
+  count,
+  setCount,
+  customCount,
+  setCustomCount,
+  fps,
+  setFps,
+  purpose,
+  setPurpose,
+  onExtract,
+  loading,
+  error,
+}) {
   const selectedCount = count === "custom" ? customCount : count;
+  const extractionSettings = extractionMode === "fps"
+    ? { mode: "fps", fps }
+    : { mode: "count", count: Number(selectedCount) };
+  const estimatedCount = estimateFrameCount(videoInfo.duration, extractionSettings);
+  const overLimit = estimatedCount > 240;
+
   return (
     <section className="setup-stage">
       <div className="section-heading">
         <div className="eyebrow"><span>02</span> SHAPE YOUR SEQUENCE</div>
         <h2>CHOOSE YOUR FRAMES</h2>
-        <p>We’ll spread your picks evenly across the whole video. You can remove any you don’t want next.</p>
+        <p>Choose a final frame count, or capture a steady number of frames every second.</p>
       </div>
       <div className="video-strip">
         <div className="video-thumb">
@@ -204,26 +226,79 @@ function SetupStage({ videoInfo, count, setCount, customCount, setCustomCount, p
       </div>
       <div className="setup-grid">
         <div className="control-card">
-          <label>HOW MANY FRAMES?</label>
-          <div className="count-options">
-            {FRAME_COUNTS.map((value) => (
-              <button
-                key={value}
-                className={count === value ? "selected" : ""}
-                type="button"
-                onClick={() => setCount(value)}
-              >
-                <strong>{value}</strong><span>frames</span>
-              </button>
-            ))}
-            <button className={count === "custom" ? "selected" : ""} type="button" onClick={() => setCount("custom")}>
-              <strong>•••</strong><span>custom</span>
+          <label>HOW SHOULD WE PICK?</label>
+          <div className="extraction-tabs">
+            <button
+              type="button"
+              className={extractionMode === "count" ? "selected" : ""}
+              onClick={() => setExtractionMode("count")}
+            >
+              TOTAL FRAMES
+              <span>Spread across the video</span>
+            </button>
+            <button
+              type="button"
+              className={extractionMode === "fps" ? "selected" : ""}
+              onClick={() => setExtractionMode("fps")}
+            >
+              FRAMES PER SECOND
+              <span>Capture at a steady rhythm</span>
             </button>
           </div>
-          {count === "custom" && (
-            <div className="custom-count">
-              <input type="range" min="2" max="120" value={customCount} onChange={(event) => setCustomCount(Number(event.target.value))} />
-              <strong>{customCount} frames</strong>
+
+          {extractionMode === "count" ? (
+            <>
+              <div className="count-options">
+                {FRAME_COUNTS.map((value) => (
+                  <button
+                    key={value}
+                    className={count === value ? "selected" : ""}
+                    type="button"
+                    onClick={() => setCount(value)}
+                  >
+                    <strong>{value}</strong><span>frames</span>
+                  </button>
+                ))}
+                <button className={count === "custom" ? "selected" : ""} type="button" onClick={() => setCount("custom")}>
+                  <strong>•••</strong><span>custom</span>
+                </button>
+              </div>
+              {count === "custom" && (
+                <div className="custom-count">
+                  <input type="range" min="2" max="120" value={customCount} onChange={(event) => setCustomCount(Number(event.target.value))} />
+                  <strong>{customCount} frames</strong>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="fps-picker">
+              <div className="fps-options">
+                {FPS_OPTIONS.map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={fps === value ? "selected" : ""}
+                    onClick={() => setFps(value)}
+                  >
+                    <strong>{value}</strong><span>FPS</span>
+                  </button>
+                ))}
+              </div>
+              <label className="custom-fps">
+                <span>CUSTOM FPS</span>
+                <input
+                  type="number"
+                  min="0.1"
+                  max="60"
+                  step="0.1"
+                  value={fps}
+                  onChange={(event) => setFps(Math.max(0.1, Number(event.target.value) || 0.1))}
+                />
+              </label>
+              <div className={`frame-estimate ${overLimit ? "is-warning" : ""}`}>
+                <strong>ABOUT {estimatedCount} FRAMES</strong>
+                <span>{fps} FPS × {videoInfo.duration.toFixed(1)} seconds</span>
+              </div>
             </div>
           )}
         </div>
@@ -243,9 +318,15 @@ function SetupStage({ videoInfo, count, setCount, customCount, setCustomCount, p
           </div>
         </div>
       </div>
-      <button className="primary-action" type="button" onClick={() => onExtract(Number(selectedCount))} disabled={loading}>
+      {overLimit && (
+        <div className="error-banner">
+          <X size={17} /> That setting would make {estimatedCount} full-resolution PNGs. Choose 240 frames or fewer.
+        </div>
+      )}
+      {error && !overLimit && <div className="error-banner"><X size={17} /> {error}</div>}
+      <button className="primary-action" type="button" onClick={() => onExtract(extractionSettings)} disabled={loading || overLimit}>
         {loading ? <LoaderCircle className="spin" size={18} /> : <Sparkles size={18} />}
-        {loading ? "GATHERING FRAMES…" : `GATHER ${selectedCount} FRAMES`}
+        {loading ? "GATHERING FRAMES…" : `GATHER ${estimatedCount} FRAMES`}
       </button>
     </section>
   );
@@ -580,8 +661,10 @@ function App() {
   const [videoInfo, setVideoInfo] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState("");
+  const [extractionMode, setExtractionMode] = useState("count");
   const [count, setCount] = useState(12);
   const [customCount, setCustomCount] = useState(30);
+  const [fps, setFps] = useState(1);
   const [purpose, setPurpose] = useState("Tracing");
   const [frames, setFrames] = useState([]);
   const [mode, setMode] = useState("original");
@@ -693,14 +776,19 @@ function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleExtract = async (frameCount) => {
+  const handleExtract = async (settings) => {
+    const frameCount = estimateFrameCount(hiddenVideoRef.current.duration, settings);
+    if (frameCount > 240) {
+      setError(`That setting would create ${frameCount} frames. Choose 240 frames or fewer.`);
+      return;
+    }
     setRequestedCount(frameCount);
     setProgress(0);
     setCurrentFrame(0);
     setError("");
     setStage("progress");
     try {
-      const nextFrames = await extractFrames(hiddenVideoRef.current, Math.min(frameCount, 120), (value, current) => {
+      const nextFrames = await extractFrames(hiddenVideoRef.current, settings, (value, current) => {
         setProgress(value);
         setCurrentFrame(current);
       });
@@ -753,14 +841,19 @@ function App() {
         {stage === "setup" && videoInfo && (
           <SetupStage
             videoInfo={videoInfo}
+            extractionMode={extractionMode}
+            setExtractionMode={setExtractionMode}
             count={count}
             setCount={setCount}
             customCount={customCount}
             setCustomCount={setCustomCount}
+            fps={fps}
+            setFps={setFps}
             purpose={purpose}
             setPurpose={setPurpose}
             onExtract={handleExtract}
             loading={false}
+            error={error}
           />
         )}
         {stage === "progress" && <ProgressStage progress={progress} current={currentFrame} total={requestedCount} />}

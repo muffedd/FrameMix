@@ -1,4 +1,4 @@
-import { formatTime } from "./utils";
+import { formatTime } from "./utils.js";
 
 function seek(video, time) {
   return new Promise((resolve, reject) => {
@@ -20,7 +20,14 @@ function seek(video, time) {
   });
 }
 
-export async function extractFrames(video, count, onProgress) {
+export function estimateFrameCount(duration, settings) {
+  if (settings.mode === "fps") {
+    return Math.max(1, Math.ceil(duration * settings.fps));
+  }
+  return Math.max(1, settings.count);
+}
+
+export async function extractFrames(video, settings, onProgress) {
   if (!video.duration || !video.videoWidth) {
     throw new Error("This video is not ready yet. Try uploading it again.");
   }
@@ -32,12 +39,14 @@ export async function extractFrames(video, count, onProgress) {
   canvas.height = captureHeight;
   const context = canvas.getContext("2d");
   const frames = [];
+  const count = estimateFrameCount(video.duration, settings);
   const start = Math.min(video.duration * 0.015, 0.35);
   const end = Math.max(start, video.duration - Math.min(video.duration * 0.015, 0.35));
 
   for (let index = 0; index < count; index += 1) {
-    const ratio = count === 1 ? 0.5 : index / (count - 1);
-    const time = start + (end - start) * ratio;
+    const time = settings.mode === "fps"
+      ? Math.min((index + 0.5) / settings.fps, Math.max(0, video.duration - 0.03))
+      : start + (end - start) * (count === 1 ? 0.5 : index / (count - 1));
     await seek(video, time);
     context.drawImage(video, 0, 0, captureWidth, captureHeight);
     const src = canvas.toDataURL("image/png");

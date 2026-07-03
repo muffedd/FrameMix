@@ -177,6 +177,11 @@ a { color: inherit; text-decoration: none; }
 .setup-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
 .control-card { background: rgba(255,255,255,.34); border: 1px solid var(--line); padding: 27px; }
 .control-card > label, .settings-group > label, .settings-group div > label { font: 500 10px "DM Mono"; letter-spacing: .09em; display: block; margin-bottom: 18px; }
+.extraction-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-bottom: 18px; }
+.extraction-tabs button { border: 1px solid var(--line); background: var(--paper-light); padding: 12px; cursor: pointer; text-align: left; font: 600 9px "DM Mono"; letter-spacing: .04em; }
+.extraction-tabs button span { display: block; margin-top: 5px; color: var(--muted); font: 400 8px "Manrope"; letter-spacing: 0; }
+.extraction-tabs button.selected { background: var(--ink); color: #fff; border-color: var(--ink); }
+.extraction-tabs button.selected span { color: rgba(255,255,255,.65); }
 .count-options { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
 .count-options button { background: var(--paper-light); border: 1px solid var(--line); padding: 14px 5px; cursor: pointer; display: flex; flex-direction: column; }
 .count-options button strong { font: 600 22px "Oswald"; }
@@ -186,6 +191,19 @@ a { color: inherit; text-decoration: none; }
 .custom-count { display: flex; align-items: center; gap: 17px; margin-top: 20px; }
 .custom-count input { flex: 1; accent-color: var(--blue); }
 .custom-count strong { font-size: 12px; min-width: 75px; }
+.fps-picker { display: grid; gap: 14px; }
+.fps-options { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+.fps-options button { min-width: 0; border: 1px solid var(--line); background: var(--paper-light); padding: 11px 3px; cursor: pointer; display: flex; flex-direction: column; align-items: center; }
+.fps-options button strong { font: 600 19px "Oswald"; }
+.fps-options button span { color: var(--muted); font: 500 8px "DM Mono"; }
+.fps-options button.selected { background: var(--blue); color: #fff; border-color: var(--blue); }
+.fps-options button.selected span { color: rgba(255,255,255,.7); }
+.custom-fps { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 12px; font: 500 9px "DM Mono"; letter-spacing: .06em; }
+.custom-fps input { width: 82px; border: 1px solid var(--ink); background: #fff; padding: 9px 10px; text-align: right; font: 600 12px "DM Mono"; }
+.frame-estimate { background: #e9eccb; border-left: 4px solid var(--lime); padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.frame-estimate strong { font: 600 10px "DM Mono"; }
+.frame-estimate span { color: var(--muted); font-size: 9px; }
+.frame-estimate.is-warning { background: #f7d3c6; border-left-color: var(--orange); color: #873217; }
 .purpose-options { display: flex; flex-wrap: wrap; gap: 8px; }
 .purpose-options button { border: 1px solid var(--line); background: var(--paper-light); padding: 12px 14px; display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 11px; }
 .primary-action { border: 0; background: var(--blue); color: #fff; min-width: 290px; padding: 17px 26px; display: flex; align-items: center; justify-content: center; gap: 11px; margin: 36px auto 0; cursor: pointer; font: 600 11px "DM Mono"; letter-spacing: .07em; box-shadow: 5px 5px 0 var(--ink); transition: .2s; }
@@ -352,6 +370,7 @@ footer p, footer > span { font: 400 9px "DM Mono"; letter-spacing: .1em; color: 
   .video-details span { white-space: nowrap; }
   .text-button { margin: 12px 0 3px 115px; }
   .count-options { grid-template-columns: repeat(3, 1fr); }
+  .fps-options { grid-template-columns: repeat(3, 1fr); }
   .review-toolbar { flex-direction: column; align-items: flex-start; overflow-x: auto; }
   .mode-pills, .toolbar-actions { min-width: max-content; }
   .frame-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }

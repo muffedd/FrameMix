@@ -6,7 +6,7 @@ FrameMix runs entirely in the browser. Videos and images stay on the user's devi
 
 ## Features
 
-- Extract evenly spaced frames from MP4, MOV, and WebM videos
+- Extract a chosen total or capture at a true frames-per-second (FPS) rhythm from MP4, MOV, and WebM videos
 - Import a complete image-sequence folder or select multiple images
 - Keep, remove, favorite, and reorder frames
 - Original, black-and-white, high-contrast, and tracing treatments
